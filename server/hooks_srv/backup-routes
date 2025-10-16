@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -e
+TMPFILES=/home/$USER/routes-tmp.txt
+FILES=/home/$USER/routes.txt
+RFILES=/home/$USER/routes-$HOSTNAME.yaml
+write-routes() {
+  route -n | awk 'NR > 2' | awk '{print $1, $2, $3, $8}' >> ${TMPFILES}
+  sed '/0.0.0.0/d' ${TMPFILES} > ${FILES}
+  rm $TMPFILES
+}
+pars-files() {
+cat $FILES | while read line || [[ -n $line ]];
+do
+   address=$(echo $line | awk '{print $1}')
+   netmask=$(echo $line | awk '{print $3}')
+   gateway=$(echo $line | awk '{print $2}')
+   interface=$(echo $line | awk '{print $4}')
+cat << EOF >> $RFILES
+- address: $address
+  netmask: $netmask
+  gateway: $gateway
+  ifc: $interface
+EOF
+done
+#exit 0
+}
+delete-tmpfiles() {
+  rm $FILES
+}
+
+write-routes
+pars-files
+delete-tmpfiles

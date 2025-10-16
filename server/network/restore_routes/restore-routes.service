@@ -1,0 +1,11 @@
+[Unit]
+Description=Start-Routes
+After=network-online.target
+Requires=network-online.target
+[Service]
+Type=simple
+User=root
+ExecStart=/bin/bash /usr/local/bin/routes.sh --restore
+RemainAfterExit=true
+[Install]
+WantedBy=multi-user.target

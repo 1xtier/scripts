@@ -1,0 +1,38 @@
+#!/bin/bash
+NAME=$2
+TEMPLATES=$3
+function helpcli() {
+    echo "tree |"
+    echo "exec |"
+    echo "create |"
+    echo "arhive"
+}
+function tree() {
+    mkdir -p $HOME/lxcbuild
+    mkdir -p $HOME/lxcbuild/{SOURCE,BUILD,TEMPLATES}
+}
+
+function exec-templates() {
+    chroot $HOME/lxcbuild/TEMPLATES/$NAME /bin/bash
+}
+
+function create-tpl() {
+    mkdir -p $HOME/lxcbuild/TEMPLATES/$NAME
+    tar -xvf $HOME/lxcbuild/SOURCE/$TEMPLATES -C $HOME/lxcbuild/TEMPLATES/$NAME
+}
+
+function arhive() {
+    tar -cJf $HOME/lxcbuild/BUILD/$NAME -C $HOME/lxcbuild/TEMPLATES/$NAME/ .
+}
+
+while [ -n "$1" ]
+	do
+    case "$1" in
+    tree )tree;;
+	  exec )exec-templates;;
+		create )create-tpl;;
+		arhive )arhive;;
+		help )helpcli;;
+		esac
+	shift
+done

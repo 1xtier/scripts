@@ -1,0 +1,72 @@
+#!/bin/bash
+NAME=$2
+ERROR="\e[0;32m Please name lxc container\e[0m"
+function helpcli() {
+ echo "* lxc [command] [name lxc container] "
+ echo "***********************************"
+ echo "* ls     | List lxc container"
+ echo "* info   | Info lxc container"
+ echo "* rm     | Remove lxc container"
+ echo "* start  | Start lxc container"
+ echo "* stop   | Stop lxc container"
+ echo "* create | Create lxc container"
+}
+
+function start() {
+    if [ -n "$NAME" ]; then
+        lxc-start -n $NAME
+    else
+        echo -e "$ERROR"
+fi
+}
+
+function stop() {
+    if [ -n "$NAME" ]; then
+        lxc-stop -n $NAME
+    else
+        echo -e "$ERROR"
+fi
+}
+
+function destroy() {
+    if [ -n "$NAME" ]; then
+        lxc-destroy -n $NAME
+    else
+        echo -e "$ERROR"
+fi
+}
+
+function create() {
+    if [ -n "$NAME" ]; then
+        lxc-create -n $NAME -B lvm --vgname=lxc_pool --fssize=5g  -t ubuntu  -- -d ubuntu -r jammy -a amd64 --packages=ssh --auth-key=/root/.ssh/ansible.pub
+    else
+        echo -e "$NAME"
+fi
+}
+
+function list() {
+    lxc-ls -f $NAME
+}
+
+function info() {
+    if [ -n "$NAME" ]; then
+        lxc-info -n $NAME
+    else
+        echo -e "$ERROR"
+fi
+}
+
+
+while [ -n "$1" ]
+	do
+    case "$1" in
+    ls )list;;
+    info )info;;
+    rm )destroy;;
+    stop )stop;;
+    start )start;;
+    create )create;;
+	  help )helpcli;;
+    esac
+	shift
+done

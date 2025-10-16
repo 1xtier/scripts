@@ -1,0 +1,10 @@
+check process nginx with pidfile /var/run/nginx.pid
+    start program = "systemctl start nginx"
+    stop program = "systemctl stop nginx"
+    if failed host 127.0.0.1 port 80 protocol http
+        and request "/"
+        for 2 cycles
+        then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb nginx 'HTTP check failed' FAILED $HOST"
+    if 3 restarts within 5 cycles then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb nginx 'Process restarted 3 times' RESTART $HOST"
+    if cpu > 80% for 2 cycles then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb 'High CPU usage' HIGH_CPU $HOST"
+    if memory > 60% for 2 cycles then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb nginx 'High memory usage' HIGH_MEMORY $HOST"

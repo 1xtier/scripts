@@ -1,0 +1,60 @@
+#!/usr/bin/env ruby
+
+require 'ipaddr'
+require 'optparse'
+
+class IPCalculator 
+  def initialize(address)
+    @address = address
+    calculate
+  end
+  def calculate
+
+    ip_part, cidr_part = @address.split('/')
+    @ip = IPAddr.new(ip_part)
+    @network = IPAddr.new("#{ip_part}/#{cidr_part}")
+
+    @range = @network.to_range
+    @hosts = @range.to_a[1..-2]
+    display_info
+  end
+
+  def display_info
+    puts "IP-Address: #{@ip}"
+    puts "Netmask: #{@network.netmask}"
+    puts "Bitmask: /#{@network.prefix}"
+    puts "Network: #{@network}"
+    puts "Next-network: #{@hosts.first}" if @hosts.any?
+    puts "End-network: #{@hosts.last}" if @hosts.any?
+    puts "Broadcast: #{@range.last}"
+    puts "IP-address-network: #{@hosts.count}"
+    puts "Total IPs in network: #{@range.count}"
+    puts "Usable hosts: #{@hosts.count}"
+  end
+end
+
+def calip 
+  options = {}
+   OptionParser.new do |opts|
+    opts.banner = "Usage: #{$0} [options]"
+    opts.on('-a', '--address ADDRESS', 'IP address with CIDR') do |a|
+      options[:address] = a
+    end
+  end.parse!
+  
+  if options[:address]
+    begin
+      IPCalculator.new(options[:address])
+    rescue => e
+      puts "Error: Invalid address format '#{options[:address]}'"
+      puts "Please use format: 192.168.1.0/24 or 10.0.0.1/8"
+      exit 1
+    end
+  else
+    puts "Please specify address with -a/--address option"
+    puts "Example: #{$0} -a 192.168.1.0/24"
+    exit 1
+  end
+end
+
+calip

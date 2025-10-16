@@ -1,0 +1,17 @@
+check filesystem rootfs with path /
+    if space usage > 80% for 5 cycles then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb disk 'Root filesystem > 80% full' DISK_SPACE $HOST"
+    if inode usage > 80% then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb disk 'High inode usage' DISK_INODE $HOST"
+
+check system $HOST
+    # Memory
+    if memory usage > 75% then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb system 'High memory usage' RESOURCE $HOST"
+    f swap usage > 50% for 3 cycles then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb system 'Swap > 50%' HIGH_MEMORY $HOST" 
+    # CPU 
+    if cpu usage (user) > 80% for 2 cycles then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb  system 'User CPU > 80%' HIGH_CPU $HOST"
+    if cpu usage (system) > 60% for 2 cycles then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb  system 'System CPU > 60%' HIGH_CPU $HOST"
+    if cpu usage (wait) > 50% for 3 cycles then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb  system 'CPU I/O wait > 50%' HIGH_CPU $HOST"
+    if cpu usage (total) > 90% for 2 cycles then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb system 'Total CPU > 90%' HIGH_CPU $HOST"
+    # Load average
+    if loadavg (1min) > 4 for 2 cycles then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb system '1min load > 4' HIGH_LOAD $HOST"
+    if loadavg (5min) > 3 for 3 cycles then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb ystem '5min load > 3' HIGH_LOAD $HOST"
+    if loadavg (15min) > 2 for 4 cycles then exec "/usr/local/lib/hooks_srv/alert/monit_alert.rb  system '15min load > 2' HIGH_LOAD $HOST"

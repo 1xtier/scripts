@@ -1,0 +1,97 @@
+#!/usr/bin/env ruby
+
+require 'colorize'
+
+class DHCPClients
+  def initialize(subnet)
+    @subnet = subnet
+    validate_subnet
+  end
+def run 
+  display_header
+  hosts = scan_active_hosts
+  if hosts.any?
+    display_hosts(hosts)
+  else
+    display_hosts(hosts)
+    puts "No active hosts found in subnet #{@subnet}".yellow
+  end 
+end
+private
+
+def validate_subnet
+  if @subnet.nil? || @subnet.empty?
+    puts "Usage: #{$0} <subnet>".red
+    puts "Example: #{$0} 192.168.1.0/24".blue
+    exit 1
+  end
+  unless @subnet.match?(/\A\d+\.\d+\.\d+\.\d+\/\d+\z/)
+    puts "Invalid subnet format: #{@subnet}".red 
+    puts "Expected format: XXX.XXX.XXX.XXX/XX".blue
+    exit 1
+  end
+end
+
+def display_header
+  puts "DHCP Clients Scanner".bold
+  puts "Subnet: #{@subnet}".blue
+  printf "%-20s %s\n", "IP Address", "MAC Address"
+  puts "-" * 50
+end 
+def scan_active_hosts
+  hosts = []
+  begin 
+    IO.popen(['sudo', 'nmap', '-sn', '-n', @subnet, '-oG', '-'], 'r') do |nmap|
+      nmap.each_line do |line|
+        if line.include?('Status: Up') && line.include?('Host:')
+          ip = line[/Host:\s*(\S+)/, 1]
+          hosts << ip if ip
+        end 
+      end
+    end
+  rescue Errno::ENOENT
+    puts "Error: nmap not found. Please install nmap".red
+    exit 1
+  end
+  hosts
+end
+def get_mac_address(ip)
+  return "N/A" if ip.nil? || ip.empty?
+  begin
+    IO.popen(['sudo', 'nmap', '-sP', ip], 'r') do |nmap|
+      nmap.each_line do |line|
+        if line =~ /MAC Address:\s+([0-9A-Fa-f:]+)/
+          return $1.upcase
+        end
+      end
+    end
+  rescue
+  end
+  "N/A"
+end
+
+def display_hosts(hosts)
+  hosts.sort.each do |ip|
+    mac = get_mac_address(ip)
+    printf "%-20s %s\n", ip.red, mac.green
+  end 
+  puts "-" * 50
+  puts "Total hosts found: #{hosts.size}".bold.blue
+end 
+end
+if __FILE__ == $0
+  begin 
+    subnet = ARGV[0]
+    scanner = DHCPClients.new(subnet)
+    scanner.run
+  rescue Interrupt
+    puts "\nScan interrupted by user".yellow
+    exit 1
+  rescue => e
+    puts "Error: #{e.message}".red
+    exit 1
+  end
+end
+
+
+
