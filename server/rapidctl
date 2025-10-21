@@ -1,0 +1,166 @@
+#!/usr/bin/env ruby
+require 'yaml'
+
+
+def vaildate_yaml(file_path)
+  begin
+    data = YAML.load_file(file_path)
+
+    unless data.is_a?(Hash)
+      puts "Invalid YAML structure: expected Hash, got #{data.class}"
+      return nil
+    end
+    unless data.key?('package')
+      puts "Missing 'package' key in YAML file"
+      return nil
+    end
+
+    packages = data['package']
+    unless packages.is_a?(Array)
+      puts "'package' should be an array, got #{packages.class}"
+      return nil
+    end
+
+    packages.each_with_index do |pkg, index|
+      unless pkg.is_a?(String)
+         puts "Package at index #{index} is not a string: #{pkg.inspect}"
+         return nil
+      end
+    end
+
+    update_setting = data.key?('update') ? data['update'] : false
+     {
+      package: packages,
+      update: update_setting
+     }
+    rescue Psych::SyntaxError => e
+        puts "YAML syntax error in #{file_path}:"
+        puts "   #{e.message}"
+        return nil
+    rescue => e
+        puts "Error reading YAML file: #{e.message}"
+        return nil
+    end
+  end
+
+def update_system(update_type)
+  case update_type
+  when true
+    puts "🔄 Running full system update (apt update && apt upgrade)..."
+    if system('sudo', 'apt', 'update') && system('sudo', 'apt', 'upgrade', '-y')
+      puts "System updated successfully"
+      true
+    else
+      puts "System update failed"
+      false
+    end
+  when false
+     puts "Updating package lists only (apt update)..."
+     if system('sudo', 'apt', 'update')
+      puts "Package lists updated"
+      true
+     else
+      puts "Failed to update package lists"
+      false
+     end
+    else
+      puts "Unknown update setting: #{update_type}, skipping system update"
+      true
+    end
+  end
+
+def run_bundle
+  puts "Running bundle install..."
+  if File.exist?('Gemfile')
+    if system('which', 'bundle', out: File::NULL)
+      success = system('bundle', 'install')
+      if success
+        puts "bundle install completed successfully"
+      else
+        puts "bundle install failed"
+        return false
+      end
+    else
+      puts "bundle command not found, installing bundler..."
+      system('sudo', 'gem', 'install', 'bundler')
+      if system('sudo', 'bundle', 'install')
+        puts "bundle install completed successfully"
+      else
+        puts "bundle install failed after installing bundler"
+        return false
+      end
+    end
+  else
+    puts "Gemfile not found, skipping bundle install"
+  end
+  true
+end
+
+def install_system_packages(packages)
+  if packages.nil? || packages.empty?
+    puts "No packages to install"
+    return nil
+  end
+
+  puts "Installing #{packages.size} system packages..."
+  puts "Packages: #{packages.join(', ')}"
+  puts "Installing packages..."
+
+  success = system('sudo', 'apt', 'install', '-y', *packages)
+  if success
+    puts "System packages installed successfully"
+    system('sudo', 'apt', 'autoclean')
+  else
+    puts "Failed to install system packages"
+  end
+  success
+end
+def check_ubuntu
+  unless File.exist?('/etc/lsb-release')
+    puts "This script is designed for Ubuntu only"
+    exit 1
+  end
+  lsb_info = File.read('/etc/lsb-release') rescue ''
+  unless lsb_info.include?('Ubuntu')
+    puts "This script is designed for Ubuntu only"
+    exit 1
+  end
+    puts "Running on Ubuntu"
+end
+
+check_ubuntu
+folder = ARGV[0] || '.'
+
+puts "Searching for package config in: #{File.expand_path(folder)}"
+
+config_file = ['system_package.yaml'].map { |f| File.join(folder, f)}.find{ |f| File.exist?(f)}
+
+unless config_file
+  puts "No package config found in #{folder}"
+  puts "Tried: packages.yml, packages.yaml, package.yml, package.yaml"
+  exit 1
+end
+puts "Found config file: #{config_file}"
+config_data = vaildate_yaml(config_file)
+
+unless config_data
+  puts "Invalid package configuration"
+  exit 1
+end
+
+packages = config_data[:package]
+update_setting = config_data[:update]
+
+puts "Update setting: #{update_setting}"
+
+
+unless update_system(update_setting)
+  exit 1
+end
+unless install_system_packages(packages)
+  exit 1
+end
+
+
+run_bundle
+puts "All tasks completed successfully!"
