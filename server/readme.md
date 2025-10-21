@@ -8,7 +8,7 @@ sh -c "$(wget https://raw.githubusercontent.com/1xtier/script/refs/heads/main/sr
 ```bash
 touch system_package.yaml
 ```
-## file contents
+#### file contents
 
 ```yaml
 update: true | false
